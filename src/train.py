@@ -19,9 +19,6 @@ from sklearn.metrics import (
 from xgboost import XGBClassifier
 
 
-# ============================================================
-# Paths
-# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -47,9 +44,6 @@ MODELS_DIR.mkdir(
 )
 
 
-# ============================================================
-# MLflow Configuration
-# ============================================================
 
 MLFLOW_TRACKING_URI = "http://127.0.0.1:5000"
 
@@ -60,11 +54,6 @@ mlflow.set_tracking_uri(
 mlflow.set_experiment(
     "CardioVascular-Risk"
 )
-
-
-# ============================================================
-# Load data
-# ============================================================
 
 def load_data():
 
@@ -78,11 +67,6 @@ def load_data():
     y_test = test_df["target"]
 
     return X_train, X_test, y_train, y_test
-
-
-# ============================================================
-# Define models
-# ============================================================
 
 def get_models():
 
@@ -113,11 +97,6 @@ def get_models():
 
     return models
 
-
-# ============================================================
-# Calibration
-# ============================================================
-
 def calibrate_model(model):
 
     calibrated_model = CalibratedClassifierCV(
@@ -127,11 +106,6 @@ def calibrate_model(model):
     )
 
     return calibrated_model
-
-
-# ============================================================
-# Evaluate model
-# ============================================================
 
 def evaluate_model(model, X_test, y_test):
 
@@ -164,11 +138,6 @@ def evaluate_model(model, X_test, y_test):
         "log_loss": loss
     }
 
-
-# ============================================================
-# Main training pipeline
-# ============================================================
-
 def train_models():
 
     print("Loading processed data...")
@@ -186,48 +155,30 @@ def train_models():
     best_model_name = None
     best_brier = float("inf")
 
-    # ========================================================
-    # Train each model
-    # ========================================================
-
     for model_name, base_model in models.items():
 
         print("\n" + "=" * 60)
         print(f"Training: {model_name}")
         print("=" * 60)
 
-        # ----------------------------------------------------
-        # Calibration
-        # ----------------------------------------------------
-
         calibrated_model = calibrate_model(
             base_model
         )
-
-        # ----------------------------------------------------
-        # MLflow run
-        # ----------------------------------------------------
 
         with mlflow.start_run(
             run_name=f"{model_name}_calibrated"
         ):
 
-            # Train
             calibrated_model.fit(
                 X_train,
                 y_train
             )
 
-            # Evaluate
             metrics = evaluate_model(
                 calibrated_model,
                 X_test,
                 y_test
             )
-
-            # ------------------------------------------------
-            # Print metrics
-            # ------------------------------------------------
 
             print(
                 f"ROC-AUC:    {metrics['roc_auc']:.4f}"
@@ -245,9 +196,6 @@ def train_models():
                 f"Log Loss:   {metrics['log_loss']:.4f}"
             )
 
-            # ------------------------------------------------
-            # MLflow parameters
-            # ------------------------------------------------
 
             mlflow.log_param(
                 "model",
@@ -263,10 +211,6 @@ def train_models():
                 "calibration_cv",
                 5
             )
-
-            # ------------------------------------------------
-            # MLflow metrics
-            # ------------------------------------------------
 
             mlflow.log_metric(
                 "roc_auc",
@@ -288,9 +232,6 @@ def train_models():
                 metrics["log_loss"]
             )
 
-            # ------------------------------------------------
-            # Log model
-            # ------------------------------------------------
 
             mlflow.sklearn.log_model(
                 calibrated_model,
@@ -305,10 +246,6 @@ def train_models():
                 }
             )
 
-        # ====================================================
-        # Select best model
-        # ====================================================
-
         if metrics["brier_score"] < best_brier:
 
             best_brier = metrics["brier_score"]
@@ -317,9 +254,6 @@ def train_models():
 
             best_model_name = model_name
 
-    # ========================================================
-    # Save best model
-    # ========================================================
 
     best_model_path = (
         MODELS_DIR
@@ -331,9 +265,6 @@ def train_models():
         best_model_path
     )
 
-    # ========================================================
-    # Results
-    # ========================================================
 
     results_df = pd.DataFrame(results)
 
