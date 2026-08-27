@@ -152,6 +152,7 @@ def train_models():
     results = []
 
     best_model = None
+    best_base_model = None
     best_model_name = None
     best_brier = float("inf")
 
@@ -252,6 +253,10 @@ def train_models():
 
             best_model = calibrated_model
 
+            base_model.fit(X_train, y_train)
+
+            best_base_model = base_model
+
             best_model_name = model_name
 
 
@@ -265,6 +270,15 @@ def train_models():
         best_model_path
     )
 
+    best_base_model_path = (
+        MODELS_DIR
+        / "best_base_tree_model.joblib"
+    )
+
+    joblib.dump(
+        best_base_model,
+        best_base_model_path
+    )
 
     results_df = pd.DataFrame(results)
 
@@ -286,6 +300,14 @@ def train_models():
 
     print(
         f"\nSaved model to:\n{best_model_path}"
+    )
+
+    print(
+        f"\nSaved calibrated model to:\n{best_model_path}"
+    )
+
+    print(
+        f"\nSaved base tree model to:\n{best_base_model_path}"
     )
 
 
